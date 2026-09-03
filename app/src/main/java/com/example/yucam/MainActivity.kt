@@ -234,7 +234,7 @@ class MainActivity : ComponentActivity() {
                     FallbackStrategy.higherQualityOrLowerThan(Quality.HD))
             )
             .build()
-        val videoCapture = VideoCapture.withOutput(recorder)
+        val videoCapture: VideoCapture<Recorder> = VideoCapture.withOutput(recorder)
         this.videoCapture = videoCapture
 
         // ImageAnalysis Use Case for ML Kit Beauty
