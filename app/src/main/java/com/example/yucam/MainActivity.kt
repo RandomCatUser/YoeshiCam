@@ -36,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.yucam.camera.FaceBeautyAnalyzer
@@ -50,8 +49,8 @@ class MainActivity : ComponentActivity() {
     private var imageCapture: ImageCapture? = null
     private var videoCapture: VideoCapture<Recorder>? = null
     private var recording: Recording? = null
-    private var currentRenderer: CameraGLRenderer? = null
-    private var cameraProvider: ProcessCameraProvider? = null
+    internal var currentRenderer: CameraGLRenderer? = null
+    internal var cameraProvider: ProcessCameraProvider? = null
     private var lensFacing: CameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
     private val requestPermissionLauncher =
@@ -206,19 +205,18 @@ class MainActivity : ComponentActivity() {
         bindCamera(provider, renderer, surfaceTexture)
     }
 
-    private fun bindCamera(provider: ProcessCameraProvider, renderer: CameraGLRenderer, surfaceTexture: android.graphics.SurfaceTexture) {
+    internal fun bindCamera(provider: ProcessCameraProvider, renderer: CameraGLRenderer, surfaceTexture: android.graphics.SurfaceTexture) {
         // Release previous binding
         provider.unbindAll()
 
         val preview = Preview.Builder()
-            .setResolutionStrategy(androidx.camera.resolutionselector.ResolutionStrategy(
-                android.util.Size(1920, 1080),
-                androidx.camera.resolutionselector.ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
-            ))
+            .setTargetResolution(android.util.Size(1920, 1080))
             .build()
 
         // Provide the GL surface texture as the preview output surface
-        preview.setSurfaceProvider { request ->
+        preview.setSurfaceProvider { request: androidx.camera.core.SurfaceRequest ->
+            val resolution = request.resolution
+            renderer.setSurfaceTextureSize(resolution.width, resolution.height)
             val surface = android.view.Surface(surfaceTexture)
             request.provideSurface(surface, ContextCompat.getMainExecutor(this)) {
                 surface.release()

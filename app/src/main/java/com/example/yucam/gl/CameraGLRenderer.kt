@@ -25,6 +25,7 @@ class CameraGLRenderer : GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailable
     // Uniform locations
     private var uTextureLocation: Int = 0
     private var uTimeLocation: Int = 0
+    private var uTexTransformLocation: Int = 0
 
     // Vertex buffer for full-screen quad
     private val quadVertices = floatArrayOf(
@@ -56,6 +57,11 @@ class CameraGLRenderer : GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailable
     /** Returns the SurfaceTexture the camera should feed frames into. */
     fun getSurfaceTexture(): SurfaceTexture? = surfaceTexture
 
+    /** Set the buffer size of the camera SurfaceTexture (called when CameraX provides a Surface). */
+    fun setSurfaceTextureSize(width: Int, height: Int) {
+        surfaceTexture?.setDefaultBufferSize(width, height)
+    }
+
     fun setGlSurfaceView(view: GLSurfaceView) {
         this.glSurfaceView = view
     }
@@ -86,6 +92,7 @@ class CameraGLRenderer : GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailable
         aTexCoordLocation = GLES20.glGetAttribLocation(program, "inputTextureCoordinate")
         uTextureLocation = GLES20.glGetUniformLocation(program, "inputImageTexture")
         uTimeLocation = GLES20.glGetUniformLocation(program, "time")
+        uTexTransformLocation = GLES20.glGetUniformLocation(program, "texTransform")
 
         surfaceTexture = SurfaceTexture(textureId).apply {
             setOnFrameAvailableListener(this@CameraGLRenderer)
@@ -120,6 +127,9 @@ class CameraGLRenderer : GLSurfaceView.Renderer, SurfaceTexture.OnFrameAvailable
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0)
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, textureId)
         GLES20.glUniform1i(uTextureLocation, 0)
+
+        // Apply the camera transform matrix for correct orientation/mirroring
+        GLES20.glUniformMatrix4fv(uTexTransformLocation, 1, false, texMatrix, 0)
 
         // Pass time uniform for animated noise
         GLES20.glUniform1f(uTimeLocation, (System.currentTimeMillis() % 10000) / 1000f)

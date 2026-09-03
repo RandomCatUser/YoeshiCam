@@ -7,16 +7,11 @@ object Shaders {
     const val VERTEX_SHADER = """
         attribute vec4 position;
         attribute vec4 inputTextureCoordinate;
+        uniform mat4 texTransform;
         varying vec2 textureCoordinate;
-        const mat4 identity = mat4(
-            1.0, 0.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0,
-            0.0, 0.0, 1.0, 0.0,
-            0.0, 0.0, 0.0, 1.0
-        );
         void main() {
             gl_Position = position;
-            textureCoordinate = inputTextureCoordinate.xy;
+            textureCoordinate = (texTransform * inputTextureCoordinate).xy;
         }
     """
 
