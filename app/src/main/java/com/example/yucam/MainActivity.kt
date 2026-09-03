@@ -12,6 +12,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.UseCase
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
@@ -249,9 +250,10 @@ class MainActivity : ComponentActivity() {
         )
 
         try {
-            provider.bindToLifecycle(
-                lifecycle, lensFacing, preview, imageCapture, videoCapture, imageAnalysis
+            val useCases: Array<UseCase> = arrayOf(
+                preview, imageCapture, videoCapture, imageAnalysis
             )
+            provider.bindToLifecycle(lifecycle, lensFacing, *useCases)
         } catch (exc: Exception) {
             Toast.makeText(this, "Failed to start camera: ${exc.message}", Toast.LENGTH_SHORT).show()
         }
