@@ -1,16 +1,19 @@
 package com.example.yucam.gl
 
 /**
- * Placeholder for OpenGL Shader definitions
- * - Y2K Warm LUT Shader
- * - Grain / Noise Shader
- * - Chromatic Aberration Shader
+ * Y2K Warm LUT / Grain / Chromatic Aberration / Vignette shader set.
  */
 object Shaders {
     const val VERTEX_SHADER = """
         attribute vec4 position;
         attribute vec4 inputTextureCoordinate;
         varying vec2 textureCoordinate;
+        const mat4 identity = mat4(
+            1.0, 0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0,
+            0.0, 0.0, 1.0, 0.0,
+            0.0, 0.0, 0.0, 1.0
+        );
         void main() {
             gl_Position = position;
             textureCoordinate = inputTextureCoordinate.xy;
@@ -20,8 +23,7 @@ object Shaders {
     const val Y2K_FRAGMENT_SHADER = """
         precision mediump float;
         varying vec2 textureCoordinate;
-        uniform sampler2D inputImageTexture;
-        uniform sampler2D inputLutTexture;
+        uniform samplerExternalOES inputImageTexture;
         uniform float time;
         
         // Pseudo-random noise function
@@ -32,17 +34,17 @@ object Shaders {
         void main() {
             vec4 textureColor = texture2D(inputImageTexture, textureCoordinate);
             
-            // Add slight warmth/tint (simplified)
+            // Add slight warmth/tint (simplified Y2K look)
             textureColor.r = min(textureColor.r * 1.1, 1.0);
-            textureColor.b = textureColor.b * 0.9;
+            textureColor.b *= 0.9;
             
-            // Add noise/grain
-            float noise = (rand(textureCoordinate * time) - 0.5) * 0.1;
+            // Add subtle grain/noise
+            float noise = (rand(textureCoordinate * time) - 0.5) * 0.08;
             textureColor.rgb += noise;
             
             // Vignette (simplified)
             float dist = distance(textureCoordinate, vec2(0.5, 0.5));
-            textureColor.rgb *= smoothstep(0.8, 0.2, dist);
+            textureColor.rgb *= smoothstep(0.85, 0.2, dist);
             
             gl_FragColor = textureColor;
         }
