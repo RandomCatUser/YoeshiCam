@@ -1,0 +1,13 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+gradle-8.4-bin.zip
+gradle-8.4/
+gradle-8.14-bin.zip
