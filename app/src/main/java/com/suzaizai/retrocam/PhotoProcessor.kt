@@ -60,12 +60,7 @@ object PhotoProcessor {
         val w = bitmap.width
         val h = bitmap.height
 
-        val smoothed = boxBlurDownscaled(bitmap, downscaleFactor = 8)
-
-        // Build an alpha mask: strong smoothing over detected faces (with a
-        // soft feathered edge), gentle smoothing everywhere else so skin
-        // elsewhere in frame still benefits a little without flattening
-        // background detail.
+        val smoothed = boxBlurDownscaled(bitmap, downscaleFactor = 8) // whole-frame smoothing
         val mask = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         val maskCanvas = Canvas(mask)
         val baseAlpha = (intensity * 60).toInt() // gentle everywhere

@@ -19,6 +19,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.UseCase
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.suzaizai.retrocam.databinding.ActivityMainBinding
@@ -67,11 +68,6 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         processingExecutor = Executors.newSingleThreadExecutor()
-
-        imageAnalysis = ImageAnalysis.Builder()
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .setTargetResolution(Size(960, 540))
-            .build()
 
         setupControls()
         startTimestampClock()
@@ -141,9 +137,15 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun rebindCamera() {
-        val provider = cameraProvider ?: return
-        val surface = glSurface ?: return
+    /**
+     * Binds the camera use cases. [withAnalysis] is true only while recording:
+     * ImageAnalysis consumes one of the camera's limited concurrent stream
+     * slots, and permanently binding three use cases makes many devices fail
+     * to open the camera at all (no preview, no photos).
+     */
+    private fun rebindCamera(withAnalysis: Boolean = false): Boolean {
+        val provider = cameraProvider ?: return false
+        val surface = glSurface ?: return false
         provider.unbindAll()
 
         val preview = Preview.Builder().build().also {
@@ -161,13 +163,27 @@ class MainActivity : AppCompatActivity() {
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .build()
 
+        val useCases = arrayListOf<UseCase>(preview, imageCapture)
+        if (withAnalysis) {
+            if (imageAnalysis == null) {
+                imageAnalysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setTargetResolution(Size(640, 480))
+                    .build()
+            }
+            imageAnalysis?.setAnalyzer(cameraExecutor, VideoAnalyzer())
+            useCases.add(requireNotNull(imageAnalysis))
+        }
+
         val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
-        try {
-            provider.bindToLifecycle(this, selector, preview, imageCapture, imageAnalysis)
+        return try {
+            provider.bindToLifecycle(this, selector, *useCases.toTypedArray())
+            true
         } catch (e: Exception) {
             Log.e(TAG, "Camera bind failed", e)
             Toast.makeText(this, "Could not start camera: ${e.message}", Toast.LENGTH_LONG).show()
+            false
         }
     }
 
@@ -251,7 +267,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun startRecording() {
         if (isRecording) return
-        val analysis = imageAnalysis ?: return
+        if (cameraProvider == null || glSurface == null) {
+            Toast.makeText(this, "Camera not ready yet", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         recordedBeauty = binding.beautySeekBar.progress / 100f
         recordedFilter = binding.filterSeekBar.progress / 100f
@@ -263,9 +282,19 @@ class MainActivity : AppCompatActivity() {
 
         binding.recordButton.setBackgroundResource(R.drawable.record_stop_button)
         binding.recordButton.contentDescription = "Stop recording"
-        Toast.makeText(this, "Recording", Toast.LENGTH_SHORT).show()
 
-        analysis.setAnalyzer(cameraExecutor, VideoAnalyzer())
+        if (!rebindCamera(withAnalysis = true)) {
+            // Camera wouldn't accept the extra analysis stream - roll back.
+            isRecording = false
+            videoRecorder = null
+            recordFile = null
+            file.delete()
+            binding.recordButton.setBackgroundResource(R.drawable.record_button)
+            binding.recordButton.contentDescription = "Record video"
+            return
+        }
+
+        Toast.makeText(this, "Recording", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopRecording() {
@@ -275,6 +304,7 @@ class MainActivity : AppCompatActivity() {
         binding.recordButton.setBackgroundResource(R.drawable.record_button)
         binding.recordButton.contentDescription = "Record video"
         imageAnalysis?.clearAnalyzer()
+        rebindCamera(withAnalysis = false)
 
         // Finalise + publish on the same single thread that encoded the frames.
         cameraExecutor.execute {

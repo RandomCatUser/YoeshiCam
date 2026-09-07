@@ -8,16 +8,7 @@ import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.util.concurrent.TimeUnit
 
-/**
- * Thin wrapper around ML Kit's on-device face detector. Used only to find
- * *where* faces are in the final captured photo so the beauty smoothing can
- * be concentrated on skin rather than blurring the whole frame (hair,
- * clothing texture, background, etc).
- *
- * Runs fully on-device - no network round trip once the bundled model is
- * available, so this is safe to call from a background thread right after
- * capture without adding noticeable lag.
- */
+
 object FaceBeautyHelper {
 
     private val options = FaceDetectorOptions.Builder()
@@ -26,11 +17,7 @@ object FaceBeautyHelper {
         .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
         .build()
 
-    /**
-     * Blocking call - always invoke from a background thread (this is used
-     * right after ImageCapture returns, on the photo-processing executor,
-     * never on the UI/GL thread).
-     */
+    
     fun detectFaceRectsBlocking(bitmap: Bitmap, timeoutMs: Long = 1500): List<RectF> {
         return try {
             val detector = FaceDetection.getClient(options)
