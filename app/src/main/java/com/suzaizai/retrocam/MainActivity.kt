@@ -163,7 +163,7 @@ class MainActivity : AppCompatActivity() {
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .build()
 
-        val useCases = arrayListOf<UseCase>(preview, imageCapture)
+        val useCases = arrayListOf<UseCase>(preview, imageCapture!!)
         if (withAnalysis) {
             if (imageAnalysis == null) {
                 imageAnalysis = ImageAnalysis.Builder()
