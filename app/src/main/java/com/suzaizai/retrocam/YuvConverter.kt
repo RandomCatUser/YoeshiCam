@@ -50,10 +50,10 @@ object YuvConverter {
             val outRow = row * width
 
             for (col in 0 until width) {
-                val y = yBuf.get(yRowBase + col * yPixelStride) and 0xFF
+                val y = yBuf.get(yRowBase + col * yPixelStride).toInt() and 0xFF
                 val uvCol = (col shr 1).coerceAtMost(halfW - 1)
-                val u = (uBuf.get(uvRowBaseU + uvCol * uPixelStride) and 0xFF) - 128
-                val v = (vBuf.get(uvRowBaseV + uvCol * vPixelStride) and 0xFF) - 128
+                val u = (uBuf.get(uvRowBaseU + uvCol * uPixelStride).toInt() and 0xFF) - 128
+                val v = (vBuf.get(uvRowBaseV + uvCol * vPixelStride).toInt() and 0xFF) - 128
 
                 val r = (y + ((1436 * v) shr 10)).coerceIn(0, 255)
                 val g = (y - ((352 * u) shr 10) - ((731 * v) shr 10)).coerceIn(0, 255)

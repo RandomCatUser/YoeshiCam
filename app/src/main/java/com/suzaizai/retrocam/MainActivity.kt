@@ -295,7 +295,7 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     Toast.makeText(
                         this,
-                        if (saved) "Video saved to gallery" else R.string.save_failed_toast,
+                        if (saved) R.string.video_saved_toast else R.string.save_failed_toast,
                         Toast.LENGTH_SHORT
                     ).show()
                 }
