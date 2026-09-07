@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black">
+
+    <!-- GL preview renders the live filtered camera feed (grain/warm LUT/vignette/beauty) -->
+    <com.suzaizai.retrocam.CameraGLSurfaceView
+        android:id="@+id/glSurfaceView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/controlsBar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Decorative digicam border overlay, purely cosmetic -->
+    <View
+        android:id="@+id/frameOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/digicam_frame"
+        app:layout_constraintTop_toTopOf="@id/glSurfaceView"
+        app:layout_constraintBottom_toBottomOf="@id/glSurfaceView"
+        app:layout_constraintStart_toStartOf="@id/glSurfaceView"
+        app:layout_constraintEnd_toEndOf="@id/glSurfaceView" />
+
+    <!-- Retro date/time stamp, styled like an old digicam -->
+    <TextView
+        android:id="@+id/timestampText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:textColor="@color/digicam_amber"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:text="00 00 0000"
+        app:layout_constraintBottom_toBottomOf="@id/glSurfaceView"
+        app:layout_constraintEnd_toEndOf="@id/glSurfaceView"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="20dp" />
+
+    <!-- Full white flash animation view shown briefly on capture -->
+    <View
+        android:id="@+id/flashOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/white"
+        android:alpha="0"
+        app:layout_constraintTop_toTopOf="@id/glSurfaceView"
+        app:layout_constraintBottom_toBottomOf="@id/glSurfaceView"
+        app:layout_constraintStart_toStartOf="@id/glSurfaceView"
+        app:layout_constraintEnd_toEndOf="@id/glSurfaceView" />
+
+    <!-- Bottom control bar -->
+    <LinearLayout
+        android:id="@+id/controlsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@color/black"
+        android:padding="12dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Beauty"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/beautySeekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="40" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Filter"
+                android:textColor="@color/white"
+                android:layout_marginEnd="8dp" />
+
+            <SeekBar
+                android:id="@+id/filterSeekBar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="80" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="10dp">
+
+            <ImageButton
+                android:id="@+id/galleryThumbButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/digicam_frame"
+                android:scaleType="centerCrop"
+                android:contentDescription="Last photo" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/shutterButton"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:background="@drawable/shutter_button"
+                android:contentDescription="Capture" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/switchCameraButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@android:color/transparent"
+                android:src="@android:drawable/ic_menu_rotate"
+                android:contentDescription="Switch camera" />
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

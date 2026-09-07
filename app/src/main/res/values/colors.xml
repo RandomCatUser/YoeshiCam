@@ -1,0 +1,7 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="digicam_amber">#FFE0B15C</color>
+    <color name="digicam_border">#FF2B2B2B</color>
+    <color name="overlay_translucent">#66000000</color>
+</resources>
