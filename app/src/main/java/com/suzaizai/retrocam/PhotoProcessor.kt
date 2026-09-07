@@ -200,14 +200,14 @@ object PhotoProcessor {
     // ---- Save to public gallery via MediaStore (scoped storage safe) ----
 
     fun saveToGallery(context: Context, bitmap: Bitmap): Boolean {
-        val filename = "ZAIZAI_${System.currentTimeMillis()}.jpg"
+        val filename = "YOESHI_${System.currentTimeMillis()}.jpg"
         val resolver = context.contentResolver
 
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, filename)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ZaizaiCam")
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/YoeshiCam")
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }

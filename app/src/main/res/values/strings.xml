@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Zaizai Cam</string>
+    <string name="app_name">Yoeshi Cam</string>
     <string name="permission_denied">Camera permission is required to use this app.</string>
     <string name="saved_toast">Saved to gallery</string>
     <string name="save_failed_toast">Failed to save photo</string>
