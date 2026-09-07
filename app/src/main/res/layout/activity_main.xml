@@ -129,6 +129,18 @@
                 android:layout_weight="1" />
 
             <ImageButton
+                android:id="@+id/recordButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/record_button"
+                android:contentDescription="Record video" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageButton
                 android:id="@+id/shutterButton"
                 android:layout_width="72dp"
                 android:layout_height="72dp"

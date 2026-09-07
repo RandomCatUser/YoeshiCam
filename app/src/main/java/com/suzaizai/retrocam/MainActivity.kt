@@ -7,12 +7,14 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Log
+import android.util.Size
 import android.view.Surface
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -20,6 +22,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.suzaizai.retrocam.databinding.ActivityMainBinding
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.concurrent.ExecutorService
@@ -33,10 +36,20 @@ class MainActivity : AppCompatActivity() {
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalysis: ImageAnalysis? = null
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var glSurface: Surface? = null
 
     private var lastSavedBitmap: Bitmap? = null
+
+    @Volatile
+    private var videoRecorder: VideoRecorder? = null
+    @Volatile
+    private var recordFile: File? = null
+    private var isRecording = false
+    private var recordedBeauty = 0f
+    private var recordedFilter = 0f
+    private var vignetteOverlay: Bitmap? = null
 
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -54,6 +67,11 @@ class MainActivity : AppCompatActivity() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         processingExecutor = Executors.newSingleThreadExecutor()
+
+        imageAnalysis = ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setTargetResolution(Size(960, 540))
+            .build()
 
         setupControls()
         startTimestampClock()
@@ -97,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         binding.glSurfaceView.setFilterIntensity(binding.filterSeekBar.progress / 100f)
 
         binding.shutterButton.setOnClickListener { onShutterPressed() }
+        binding.recordButton.setOnClickListener { toggleRecording() }
         binding.switchCameraButton.setOnClickListener { switchCamera() }
         binding.galleryThumbButton.setOnClickListener {
             Toast.makeText(this, "Open your gallery app to view saved photos", Toast.LENGTH_SHORT).show()
@@ -145,7 +164,7 @@ class MainActivity : AppCompatActivity() {
         val selector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
         try {
-            provider.bindToLifecycle(this, selector, preview, imageCapture)
+            provider.bindToLifecycle(this, selector, preview, imageCapture, imageAnalysis)
         } catch (e: Exception) {
             Log.e(TAG, "Camera bind failed", e)
             Toast.makeText(this, "Could not start camera: ${e.message}", Toast.LENGTH_LONG).show()
@@ -153,6 +172,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun switchCamera() {
+        // Rebinding the camera would silently stall an active recording.
+        if (isRecording) stopRecording()
+
         lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
             CameraSelector.LENS_FACING_FRONT
         } else {
@@ -221,6 +243,102 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ---- Video recording (CPU pipeline: analysis frames -> beauty/retro look -> H.264) ----
+
+    private fun toggleRecording() {
+        if (isRecording) stopRecording() else startRecording()
+    }
+
+    private fun startRecording() {
+        if (isRecording) return
+        val analysis = imageAnalysis ?: return
+
+        recordedBeauty = binding.beautySeekBar.progress / 100f
+        recordedFilter = binding.filterSeekBar.progress / 100f
+
+        val file = File(cacheDir, "yoeshi_rec_${System.currentTimeMillis()}.mp4")
+        recordFile = file
+        videoRecorder = VideoRecorder(file)
+        isRecording = true
+
+        binding.recordButton.setBackgroundResource(R.drawable.record_stop_button)
+        binding.recordButton.contentDescription = "Stop recording"
+        Toast.makeText(this, "Recording", Toast.LENGTH_SHORT).show()
+
+        analysis.setAnalyzer(cameraExecutor, VideoAnalyzer())
+    }
+
+    private fun stopRecording() {
+        if (!isRecording) return
+        isRecording = false
+
+        binding.recordButton.setBackgroundResource(R.drawable.record_button)
+        binding.recordButton.contentDescription = "Record video"
+        imageAnalysis?.clearAnalyzer()
+
+        // Finalise + publish on the same single thread that encoded the frames.
+        cameraExecutor.execute {
+            try {
+                videoRecorder?.stop()
+            } catch (t: Throwable) {
+                Log.e(TAG, "Video stop failed", t)
+            } finally {
+                val file = recordFile
+                videoRecorder = null
+                recordFile = null
+                vignetteOverlay = null
+
+                val saved = file != null && file.exists() && file.length() > 0L &&
+                    VideoRecorder.publishToGallery(this@MainActivity, file)
+                file?.delete()
+
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        if (saved) "Video saved to gallery" else R.string.save_failed_toast,
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    /**
+     * Feeds every camera frame through the filter and into the encoder. Runs on
+     * [cameraExecutor]; the recorder is lazily started on the first frame so the
+     * codec dimensions exactly match what the camera delivers.
+     */
+    private inner class VideoAnalyzer : ImageAnalysis.Analyzer {
+        override fun analyze(image: ImageProxy) {
+            try {
+                val recorder = videoRecorder ?: return
+                val bitmap = YuvConverter.toBitmap(image)
+                if (bitmap.width < 2 || bitmap.height < 2) return
+
+                if (!recorder.isRecording) {
+                    recorder.start(bitmap.width, bitmap.height, image.imageInfo.rotationDegrees)
+                }
+                if (vignetteOverlay == null) {
+                    vignetteOverlay = PhotoProcessor.createVignetteOverlay(
+                        bitmap.width, bitmap.height
+                    )
+                }
+
+                val processed = PhotoProcessor.processVideoFrame(
+                    bitmap,
+                    recordedBeauty,
+                    recordedFilter,
+                    vignetteOverlay!!
+                )
+                recorder.frame(processed)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Video frame failed", t)
+            } finally {
+                image.close()
+            }
+        }
+    }
+
     private fun flashScreen() {
         val view = binding.flashOverlay
         val animator = ValueAnimator.ofFloat(0.85f, 0f)
@@ -231,6 +349,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (videoRecorder != null) {
+            isRecording = false
+            cameraExecutor.execute { videoRecorder?.stop() }
+        }
         cameraExecutor.shutdown()
         processingExecutor.shutdown()
         binding.glSurfaceView.release()

@@ -169,6 +169,90 @@ object PhotoProcessor {
         )
     }
 
+    // ---- Per-frame processing for recorded video ----
+    //
+    // The preview shows the same look on the GPU; here we approximate it with
+    // cheap CPU passes one frame at a time so the baked video matches what the
+    // viewfinder showed (whole-frame smoothing rather than face-masked, mirroring
+    // the GPU shader's global box blur). Cosmetics like the border/timestamp are
+    // deliberately skipped - they make sense on a still, not in moving footage.
+
+    fun processVideoFrame(
+        source: Bitmap,
+        beautyIntensity: Float,
+        filterIntensity: Float,
+        vignette: Bitmap
+    ): Bitmap {
+        var working = source.copy(Bitmap.Config.ARGB_8888, true)
+
+        if (beautyIntensity > 0.01f) {
+            working = applyVideoBeauty(working, beautyIntensity)
+        }
+        if (filterIntensity > 0.01f) {
+            applyWarmGrade(working, filterIntensity)
+            applyGrain(working, filterIntensity)
+        }
+
+        val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            alpha = (filterIntensity * 255).toInt().coerceIn(0, 255)
+        }
+        Canvas(working).drawBitmap(vignette, 0f, 0f, vignettePaint)
+        return working
+    }
+
+    /** Whole-frame skin smoothing: same "mix toward a box blur" the preview shader does. */
+    private fun applyVideoBeauty(bitmap: Bitmap, intensity: Float): Bitmap {
+        val blurred = boxBlurDownscaled(bitmap, downscaleFactor = 8)
+        val out = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            alpha = (intensity * 0.85f * 255).toInt().coerceIn(0, 255)
+        }
+        Canvas(out).drawBitmap(blurred, 0f, 0f, paint)
+        blurred.recycle()
+        return out
+    }
+
+    /** Warm digicam grade only (no vignette - that is drawn as a reusable overlay). */
+    private fun applyWarmGrade(bitmap: Bitmap, intensity: Float) {
+        val canvas = Canvas(bitmap)
+        val identity = ColorMatrix()
+        val warm = ColorMatrix(
+            floatArrayOf(
+                1.08f, 0f, 0f, 0f, 6f,
+                0f, 1.02f, 0f, 0f, 2f,
+                0f, 0f, 0.90f, 0f, 0f,
+                0f, 0f, 0f, 1f, 0f
+            )
+        )
+        val lerped = FloatArray(20)
+        val a = identity.array
+        val b = warm.array
+        for (i in 0 until 20) lerped[i] = a[i] + (b[i] - a[i]) * intensity
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            colorFilter = ColorMatrixColorFilter(lerped)
+        }
+        val copy = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        canvas.drawBitmap(copy, 0f, 0f, paint)
+        copy.recycle()
+    }
+
+    /** Pre-built vignette gradient, reused across every frame of one recording. */
+    fun createVignetteOverlay(w: Int, h: Int): Bitmap {
+        val overlay = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(overlay)
+        val radius = max(w.toFloat(), h.toFloat()) * 0.75f
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            shader = RadialGradient(
+                w / 2f, h / 2f, radius,
+                Color.argb(0, 0, 0, 0),
+                Color.argb(110, 0, 0, 0),
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+        return overlay
+    }
+
     // ---- Cosmetic border + retro timestamp ----
 
     private fun drawBorderAndTimestamp(bitmap: Bitmap) {
