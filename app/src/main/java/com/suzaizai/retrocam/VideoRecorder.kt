@@ -543,7 +543,11 @@ class VideoRecorder(private val outFile: File) {
                         audioFormatOut = ac.outputFormat
                     }
                     outIndex >= 0 -> {
-                        val b = ac.getOutputBuffer(outIndex) ?: run { ac.releaseOutputBuffer(outIndex, false); break }
+                        val b = ac.getOutputBuffer(outIndex)
+                        if (b == null) {
+                            ac.releaseOutputBuffer(outIndex, false)
+                            break
+                        }
                         if (info.size > 0 && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
                             val out = ByteArray(info.size)
                             b.position(info.offset)
@@ -577,7 +581,11 @@ class VideoRecorder(private val outFile: File) {
                     audioFormatOut = ac.outputFormat
                 }
                 outIndex >= 0 -> {
-                    val b = ac.getOutputBuffer(outIndex) ?: run { ac.releaseOutputBuffer(outIndex, false); break }
+                    val b = ac.getOutputBuffer(outIndex)
+                    if (b == null) {
+                        ac.releaseOutputBuffer(outIndex, false)
+                        break
+                    }
                     if (info.size > 0 && (info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG) == 0) {
                         val out = ByteArray(info.size)
                         b.position(info.offset)

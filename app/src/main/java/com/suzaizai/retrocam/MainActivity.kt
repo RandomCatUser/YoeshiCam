@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.graphics.PointF
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,7 +22,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
-import androidx.camera.core.MeteringPoint
 import androidx.camera.core.MeteringPointFactory
 import androidx.camera.core.Preview
 import androidx.camera.core.UseCase
@@ -310,7 +310,8 @@ class MainActivity : AppCompatActivity() {
         val cropV = crop[1]
 
         return object : MeteringPointFactory() {
-            override fun createPoint(x: Float, y: Float): MeteringPoint {
+            // convertPoint maps viewfinder coords -> sensor-normalized coords.
+            override fun convertPoint(x: Float, y: Float): PointF {
                 // Undo the aspect-fit crop to get coords in the full buffer image.
                 val cx = if (cropU < 1f) (1f - cropU) / 2f + cropU * x else x
                 val cy = if (cropV < 1f) (1f - cropV) / 2f + cropV * y else y
@@ -323,11 +324,7 @@ class MainActivity : AppCompatActivity() {
                     270 -> cy to (1 - cx)
                     else -> cx to cy
                 }
-                return MeteringPoint(
-                    if (front) 1 - sx else sx,
-                    sy,
-                    DEFAULT_METERING_SIZE
-                )
+                return PointF(if (front) 1 - sx else sx, sy)
             }
         }
     }
@@ -579,6 +576,5 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
-        private const val DEFAULT_METERING_SIZE = 1f
     }
 }
