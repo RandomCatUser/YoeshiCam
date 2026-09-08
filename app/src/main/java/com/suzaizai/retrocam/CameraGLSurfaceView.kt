@@ -3,12 +3,13 @@ package com.suzaizai.retrocam
 import android.content.Context
 import android.opengl.GLSurfaceView
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.Surface
 
 /**
  * Thin GLSurfaceView wrapper that owns a [GLRenderer] and exposes the
  * camera-facing [Surface] once GL setup has completed, plus pass-throughs
- * for the beauty/filter sliders.
+ * for the beauty/filter values and a tap-to-focus callback.
  */
 class CameraGLSurfaceView @JvmOverloads constructor(
     context: Context,
@@ -16,6 +17,7 @@ class CameraGLSurfaceView @JvmOverloads constructor(
 ) : GLSurfaceView(context, attrs) {
 
     private var onSurfaceReady: ((Surface) -> Unit)? = null
+    private var onTap: ((Float, Float) -> Unit)? = null
     lateinit var renderer: GLRenderer
         private set
 
@@ -34,6 +36,11 @@ class CameraGLSurfaceView @JvmOverloads constructor(
         onSurfaceReady = listener
     }
 
+    /** Register a tap handler; receives normalized view coords (0..1, top-left origin). */
+    fun setOnTapListener(listener: (Float, Float) -> Unit) {
+        onTap = listener
+    }
+
     fun setBeautyIntensity(value: Float) {
         renderer.beautyIntensity = value.coerceIn(0f, 1f)
     }
@@ -46,8 +53,13 @@ class CameraGLSurfaceView @JvmOverloads constructor(
         renderer.setBufferSize(width, height)
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_UP) {
+            val x = event.x / width
+            val y = event.y / height
+            onTap?.invoke(x.coerceIn(0f, 1f), y.coerceIn(0f, 1f))
+        }
+        return true
     }
 
     fun release() {

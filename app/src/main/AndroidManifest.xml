@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Only needed for API 28 and below; MediaStore handles scoped storage on API 29+ -->
     <uses-permission
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"

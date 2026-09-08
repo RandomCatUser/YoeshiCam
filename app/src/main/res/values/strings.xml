@@ -1,7 +1,12 @@
 <resources>
     <string name="app_name">Yoeshi Cam</string>
     <string name="permission_denied">Camera permission is required to use this app.</string>
+    <string name="audio_permission_denied">Microphone permission is required to record video with sound.</string>
     <string name="saved_toast">Saved to gallery</string>
     <string name="video_saved_toast">Video saved to gallery</string>
     <string name="save_failed_toast">Failed to save photo</string>
+    <string name="flash_off">Flash off</string>
+    <string name="flash_on">Flash on</string>
+    <string name="flash_auto">Flash auto</string>
+    <string name="recording">Recording</string>
 </resources>
