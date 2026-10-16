@@ -1,0 +1,27 @@
+name: oldcam2011
+description: tiny 2011 style camera
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  camera: ^0.11.1
+  permission_handler: ^11.3.1
+  gal: ^2.3.1
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  image: ^4.3.0
+  wakelock_plus: ^1.2.8
+  device_info_plus: ^11.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
